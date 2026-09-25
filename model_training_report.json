@@ -1,0 +1,116 @@
+{
+  "best_model": "GradientBoosting",
+  "dataset": {
+    "total_rows": 4296,
+    "aloe_only": true,
+    "excluded_sources": [
+      "indoor_plant_iot_reference_pool"
+    ],
+    "class_distribution": {
+      "Happy": 2089,
+      "Stressed": 1607,
+      "Unhealthy": 600
+    },
+    "train_size": 3007,
+    "val_size": 644,
+    "test_size": 645
+  },
+  "improvement_over_rules": {
+    "accuracy_gain": 0.4868,
+    "macro_f1_gain": 0.5106
+  },
+  "results": {
+    "RandomForest": {
+      "val_accuracy": 0.9969,
+      "test_accuracy": 0.9922,
+      "balanced_accuracy": 0.9933,
+      "macro_f1": 0.9938,
+      "confusion_matrix": [
+        [
+          311,
+          1,
+          0
+        ],
+        [
+          4,
+          233,
+          0
+        ],
+        [
+          0,
+          0,
+          96
+        ]
+      ]
+    },
+    "GradientBoosting": {
+      "val_accuracy": 0.9969,
+      "test_accuracy": 0.9969,
+      "balanced_accuracy": 0.9972,
+      "macro_f1": 0.9975,
+      "confusion_matrix": [
+        [
+          312,
+          0,
+          0
+        ],
+        [
+          2,
+          235,
+          0
+        ],
+        [
+          0,
+          0,
+          96
+        ]
+      ]
+    },
+    "LogisticRegression": {
+      "val_accuracy": 0.9332,
+      "test_accuracy": 0.9364,
+      "balanced_accuracy": 0.9388,
+      "macro_f1": 0.9274,
+      "confusion_matrix": [
+        [
+          292,
+          12,
+          8
+        ],
+        [
+          8,
+          221,
+          8
+        ],
+        [
+          2,
+          3,
+          91
+        ]
+      ]
+    },
+    "RuleBasedFallback": {
+      "val_accuracy": null,
+      "test_accuracy": 0.5101,
+      "balanced_accuracy": 0.5978,
+      "macro_f1": 0.4869,
+      "confusion_matrix": [
+        [
+          187,
+          103,
+          22
+        ],
+        [
+          4,
+          46,
+          187
+        ],
+        [
+          0,
+          0,
+          96
+        ]
+      ]
+    }
+  }
+}
