@@ -5,9 +5,8 @@
 #include <U8g2lib.h>
 #include <WiFi.h>
 
-// Software I2C constructor for SH1106 OLED (SCL = GPIO 22, SDA = GPIO 21)
-U8G2_SH1106_128X64_NONAME_F_SW_I2C u8g2(U8G2_R0, /* scl=*/22, /* sda=*/21,
-                                        /* reset=*/U8X8_PIN_NONE);
+// Hardware I2C constructor for SSD1306 OLED (uses default SCL=22, SDA=21)
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
 
 // --- PIN DEFINITIONS ---
 const int MOISTURE_PIN = 34; // Soil Moisture Sensor
@@ -19,9 +18,15 @@ const int DHT_PIN = 4;       // DHT Temp/Humidity Sensor (Left Side: GPIO 4)
 DHT dht(DHT_PIN, DHTTYPE);
 
 // --- CALIBRATION DATA ---
-const int HIGH_RAW_SOIL = 3800; // Air / Bone Dry Soil
-const int LOW_RAW_SOIL = 1200;  // Water / Saturated Soil
-const int DRY_THRESHOLD = 10;   // Aloe Vera: Water ONLY when <= 10%
+// ⚠️ Resistive sensor: LOW raw = dry air, HIGH raw = wet/water
+//   DRY_RAW_SOIL = raw ADC value when sensor is in DRY AIR  (expect ~400–800)
+//   WET_RAW_SOIL = raw ADC value when sensor is fully in WATER (expect
+//   ~2500–3500)
+// Check [DEBUG] lines in Serial Monitor to find your exact values, then update
+// below.
+const int DRY_RAW_SOIL = 600;  // Sensor in dry air  <-- tune this
+const int WET_RAW_SOIL = 3000; // Sensor in water    <-- tune this
+const int DRY_THRESHOLD = 10;  // Aloe Vera: Water ONLY when <= 10%
 
 const int DARK_RAW_LIGHT = 4095;  // Darkness
 const int BRIGHT_RAW_LIGHT = 200; // Bright Indirect Sunlight
@@ -29,7 +34,7 @@ const int LIGHT_THRESHOLD = 35;   // Aloe Vera needs >= 35% light
 
 // --- TIMING & SLEEP ---
 const unsigned long DISPLAY_TIMEOUT_MS =
-    12000; // Screen sleeps after 12s of no motion
+    30000; // Screen sleeps after 30s of no motion
 unsigned long lastMotionTime = 0;
 bool isDisplayOn = false;
 bool animationFrame = false;
@@ -38,19 +43,24 @@ unsigned long modeSwitchTimer = 0;
 int displayState = 0; // 0 = Greeting, 1 = Soil, 2 = Light, 3 = Temp/Humidity
 
 // --- WIFI + BACKEND CONFIG ---
-const char *WIFI_SSID = "Meeeeen";        // <--- Update this
-const char *WIFI_PASSWORD = "1234567890"; // <--- Update this
+const char *WIFI_SSID = "meeeeen";
+const char *WIFI_PASSWORD = "1234567890";
 const char *SERVER_URL =
-    "http://10.4.214.222:5000/api/sensor-data"; // Current host IP
+    "http://192.167.9.13:5000/api/sensor-data"; // Current host IP
 const char *DEVICE_ID = "aloe-pot-01";
 
-const unsigned long SEND_INTERVAL_MS = 60000; // send to backend every 60s
+const unsigned long SEND_INTERVAL_MS = 5000; // send to backend every 5s
 unsigned long lastSendTime = 0;
 const unsigned long MOTION_POST_INTERVAL_MS = 5000;
 unsigned long lastMotionPostTime = 0;
 bool hasMotionPost = false;
 bool motionGreetingActive = false;
 bool previousMotionState = false;
+
+// Forward function declarations
+bool sendSensorData(int moisturePercent, int lightPercent, float tempC,
+                    float hum, bool motionDetected);
+void drawAloeVera(bool isHappy, bool isGreeting);
 
 // --- SMOOTHING FILTER ---
 int getSmoothedRead(int pin) {
@@ -83,6 +93,14 @@ void connectWiFi() {
   }
 }
 
+// --- SENSOR CONNECTION FLAGS ---
+// Set to true only for sensors physically wired to the ESP32.
+// Unconnected sensors will report 0 instead of garbage values.
+const bool MOISTURE_SENSOR_CONNECTED = true; // <-- set true when wired
+const bool LIGHT_SENSOR_CONNECTED = true;    // <-- LDR connected to pin 35
+const bool PIR_SENSOR_CONNECTED = true;      // <-- PIR connected to GPIO 23
+const bool DHT_SENSOR_CONNECTED = true;      // <-- set true when wired
+
 void setup() {
   Serial.begin(115200);
   delay(1000);
@@ -101,17 +119,59 @@ void setup() {
   isDisplayOn = true;
   lastMotionTime = millis();
 
+  // Show a loading screen so it doesn't look broken during the 15-second WiFi
+  // wait
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_6x10_tf);
+  u8g2.setCursor(10, 30);
+  u8g2.print("Connecting to:");
+  u8g2.setCursor(10, 45);
+  u8g2.print(WIFI_SSID);
+  u8g2.sendBuffer();
+
   connectWiFi();
 
+  // Show WiFi result screen for 2 seconds
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_6x10_tf);
+  if (WiFi.status() == WL_CONNECTED) {
+    u8g2.setCursor(18, 20);
+    u8g2.print("WiFi Connected!");
+    u8g2.setCursor(10, 35);
+    u8g2.print("IP:");
+    u8g2.setCursor(28, 35);
+    u8g2.print(WiFi.localIP().toString().c_str());
+    u8g2.setCursor(20, 50);
+    u8g2.print("Aloe Pot Ready!");
+  } else {
+    u8g2.setCursor(18, 25);
+    u8g2.print("WiFi Failed :(");
+    u8g2.setCursor(5, 40);
+    u8g2.print("Check SSID/Password");
+  }
+  u8g2.sendBuffer();
+  delay(2000);
+
   // Send an immediate reading on startup
-  int rawSoil = getSmoothedRead(MOISTURE_PIN);
-  int moisturePercent =
-      constrain(map(rawSoil, HIGH_RAW_SOIL, LOW_RAW_SOIL, 0, 100), 0, 100);
-  int rawLight = getSmoothedRead(LIGHT_PIN);
-  int lightPercent = constrain(
-      map(rawLight, DARK_RAW_LIGHT, BRIGHT_RAW_LIGHT, 0, 100), 0, 100);
-  float tempC = dht.readTemperature();
-  float hum = dht.readHumidity();
+  int moisturePercent = 0;
+  if (MOISTURE_SENSOR_CONNECTED) {
+    int rawSoil = getSmoothedRead(MOISTURE_PIN);
+    // Resistive sensor: low raw = dry (0%), high raw = wet (100%)
+    moisturePercent =
+        constrain(map(rawSoil, DRY_RAW_SOIL, WET_RAW_SOIL, 0, 100), 0, 100);
+  }
+  int lightPercent = 0;
+  if (LIGHT_SENSOR_CONNECTED) {
+    int rawLight = getSmoothedRead(LIGHT_PIN);
+    lightPercent = constrain(
+        map(rawLight, DARK_RAW_LIGHT, BRIGHT_RAW_LIGHT, 0, 100), 0, 100);
+  }
+  float tempC = NAN;
+  float hum = NAN;
+  if (DHT_SENSOR_CONNECTED) {
+    tempC = dht.readTemperature();
+    hum = dht.readHumidity();
+  }
 
   sendSensorData(moisturePercent, lightPercent, tempC, hum, false);
 }
@@ -163,16 +223,22 @@ void drawAloeVera(bool isHappy, bool isGreeting) {
 // connected
 bool sendSensorData(int moisturePercent, int lightPercent, float tempC,
                     float hum, bool motionDetected) {
-  if (isnan(tempC) || isnan(hum)) {
-    Serial.println("DHT reading invalid - skipping sensor upload");
-    return false;
+  // If DHT is not connected or reading failed, substitute 0 instead of blocking
+  // the upload
+  float safeTemp = isnan(tempC) ? 0.0 : tempC;
+  float safeHum = isnan(hum) ? 0.0 : hum;
+
+  if (!DHT_SENSOR_CONNECTED) {
+    Serial.println("DHT not connected - sending 0 for temp/humidity");
+  } else if (isnan(tempC) || isnan(hum)) {
+    Serial.println("DHT reading invalid - sending 0 for temp/humidity");
   }
 
   // JsonDocument works across both ArduinoJson v6 and v7
   JsonDocument doc;
   doc["device_id"] = DEVICE_ID;
-  doc["temperature_c"] = tempC;
-  doc["humidity_pct"] = hum;
+  doc["temperature_c"] = safeTemp;
+  doc["humidity_pct"] = safeHum;
   doc["soil_moisture_pct"] = moisturePercent;
   doc["light_pct"] = lightPercent;
   doc["motion_detected"] = motionDetected;
@@ -207,9 +273,18 @@ bool sendSensorData(int moisturePercent, int lightPercent, float tempC,
 }
 
 void loop() {
-  bool motionDetected = digitalRead(PIR_PIN) == HIGH;
+  // Only read PIR if sensor is physically wired; otherwise motion is always
+  // false.
+  bool motionDetected = PIR_SENSOR_CONNECTED && (digitalRead(PIR_PIN) == HIGH);
   bool newMotionDetected = motionDetected && !previousMotionState;
   previousMotionState = motionDetected;
+
+  // DEBUG: show raw PIR pin level — should say HIGH when motion, LOW when still
+  Serial.print("[PIR] pin 23 = ");
+  Serial.print(digitalRead(PIR_PIN) == HIGH ? "HIGH (motion!)"
+                                            : "LOW (no motion)");
+  Serial.print("  |  motionDetected = ");
+  Serial.println(motionDetected ? "YES" : "NO");
 
   if (motionDetected) {
     lastMotionTime = millis();
@@ -225,30 +300,54 @@ void loop() {
     motionGreetingActive = true;
   }
 
-  // Auto-sleep OLED to save screen life
-  if (isDisplayOn && (millis() - lastMotionTime > DISPLAY_TIMEOUT_MS)) {
+  // Auto-sleep OLED only when PIR is connected (motion can wake it).
+  // If PIR is not connected, keep the screen on permanently.
+  if (PIR_SENSOR_CONNECTED && isDisplayOn &&
+      (millis() - lastMotionTime > DISPLAY_TIMEOUT_MS)) {
     u8g2.setPowerSave(1);
     isDisplayOn = false;
     motionGreetingActive = false;
   }
 
-  // Sensors are read every cycle regardless of display state
-  int rawSoil = getSmoothedRead(MOISTURE_PIN);
-  int moisturePercent = map(rawSoil, HIGH_RAW_SOIL, LOW_RAW_SOIL, 0, 100);
-  moisturePercent = constrain(moisturePercent, 0, 100);
+  // Read only connected sensors; unconnected ones stay at 0.
+  int moisturePercent = 0;
+  if (MOISTURE_SENSOR_CONNECTED) {
+    int rawSoil = getSmoothedRead(MOISTURE_PIN);
+    // DEBUG: check these values to calibrate DRY_RAW_SOIL / WET_RAW_SOIL
+    Serial.print("[DEBUG] Raw soil ADC: ");
+    Serial.println(rawSoil);
+    // Resistive sensor: low raw = dry (0%), high raw = wet (100%)
+    moisturePercent =
+        constrain(map(rawSoil, DRY_RAW_SOIL, WET_RAW_SOIL, 0, 100), 0, 100);
+  }
 
-  int rawLight = getSmoothedRead(LIGHT_PIN);
-  int lightPercent = map(rawLight, DARK_RAW_LIGHT, BRIGHT_RAW_LIGHT, 0, 100);
-  lightPercent = constrain(lightPercent, 0, 100);
+  int lightPercent = 0;
+  if (LIGHT_SENSOR_CONNECTED) {
+    int rawLight = getSmoothedRead(LIGHT_PIN);
+    lightPercent = constrain(
+        map(rawLight, DARK_RAW_LIGHT, BRIGHT_RAW_LIGHT, 0, 100), 0, 100);
+  }
 
-  float tempC = dht.readTemperature();
-  float hum = dht.readHumidity();
+  float tempC = NAN;
+  float hum = NAN;
+  if (DHT_SENSOR_CONNECTED) {
+    tempC = dht.readTemperature();
+    hum = dht.readHumidity();
+  }
 
   if (motionDetected && (!hasMotionPost || millis() - lastMotionPostTime >=
                                                MOTION_POST_INTERVAL_MS)) {
     lastMotionPostTime = millis();
     hasMotionPost = true;
     sendSensorData(moisturePercent, lightPercent, tempC, hum, true);
+  } else if (!motionDetected) {
+    hasMotionPost = false;
+  }
+
+  // Periodic send to backend
+  if (millis() - lastSendTime >= SEND_INTERVAL_MS) {
+    lastSendTime = millis();
+    sendSensorData(moisturePercent, lightPercent, tempC, hum, motionDetected);
   }
 
   bool soilNeedsWater = (moisturePercent <= DRY_THRESHOLD);
@@ -274,9 +373,9 @@ void loop() {
     if (displayState == 0) {
       u8g2.setCursor(8, 48);
       if (motionGreetingActive) {
-        u8g2.print("HEYYY PEEKING! ~");
+        u8g2.print("HEY WASSUP!! ~");
         u8g2.setCursor(8, 58);
-        u8g2.print("I SEE YOU THERE!");
+        u8g2.print("I SEE YOU!! :D");
       } else {
         u8g2.print("HELLO FRIEND~");
       }
@@ -294,15 +393,19 @@ void loop() {
       }
     } else if (displayState == 2) {
       u8g2.setCursor(0, 46);
-      u8g2.print("Sun: ");
+      u8g2.print("Room Light: ");
       u8g2.print(lightPercent);
       u8g2.print("%");
 
       u8g2.setCursor(0, 54);
-      if (plantNeedsLight) {
-        u8g2.print("A LITTLE SUNLIGHT PLEASE");
+      if (lightPercent < 20) {
+        u8g2.print("ROOM IS DARK");
+      } else if (plantNeedsLight) {
+        u8g2.print("ROOM IS A BIT DIM");
+      } else if (lightPercent < 70) {
+        u8g2.print("ROOM LIGHT IS GOOD");
       } else {
-        u8g2.print("SIPPING SUNLIGHT~");
+        u8g2.print("ROOM IS BRIGHT & COZY");
       }
     } else {
       u8g2.setCursor(0, 46);

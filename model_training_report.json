@@ -21,10 +21,10 @@
   },
   "results": {
     "RandomForest": {
-      "val_accuracy": 0.9969,
-      "test_accuracy": 0.9922,
-      "balanced_accuracy": 0.9933,
-      "macro_f1": 0.9938,
+      "val_accuracy": 0.9984,
+      "test_accuracy": 0.9953,
+      "balanced_accuracy": 0.9961,
+      "macro_f1": 0.9963,
       "confusion_matrix": [
         [
           311,
@@ -32,8 +32,8 @@
           0
         ],
         [
-          4,
-          233,
+          2,
+          235,
           0
         ],
         [

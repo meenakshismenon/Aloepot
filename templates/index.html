@@ -409,7 +409,7 @@
           <div id="userTranscript" class="user-transcript hidden">
             <strong>You: </strong><span id="transcriptText">Listening…</span>
           </div>
-          <p id="assistantMessage" class="assistant-message">ESP32 is not connected. Connect your Aloe Pot to view real-time soil, light, and climate insights.</p>
+          <p id="assistantMessage" class="assistant-message">ESP32 is not connected. Connect your Aloe Pot to view real-time soil, room light, and climate insights.</p>
           <div class="quick-chips" aria-label="Quick questions">
             <button class="chip" type="button" data-question="what is the weather today">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -455,13 +455,13 @@
       </article>
       <article class="metric">
         <div class="metric-head">
-          <span>Sunlight</span>
+          <span>Room Light</span>
           <div class="metric-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#fbbf24"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="#fde68a" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-7 7c0 2.5 1.5 4.5 3 6h8c1.5-1.5 3-3.5 3-6a7 7 0 0 0-7-7Z" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
         </div>
         <div class="metric-value"><span id="lightValue">--</span><span>%</span></div>
-        <div class="metric-note">Target: at least 35% light</div>
+        <div id="lightNote" class="metric-note">Target: at least 35% room light</div>
         <div class="meter"><div id="lightMeter" class="meter-fill"></div></div>
       </article>
       <article class="metric">
@@ -492,7 +492,7 @@
         <span class="chart-title">Sensor History — Last 20 Readings</span>
         <div class="chart-legend">
           <div class="legend-item"><div class="legend-dot" style="background:#22d3ee"></div>Soil %</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div>Light %</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#fbbf24"></div>Room Light %</div>
           <div class="legend-item"><div class="legend-dot" style="background:#f472b6"></div>Temp °C</div>
           <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>VPD kPa×10</div>
         </div>
@@ -635,7 +635,7 @@
   };
 
   const vpdLabels = { too_humid:"Too humid", healthy_range:"Comfortable", mild_stress:"Mild stress", high_stress:"High stress" };
-  const moodLabels = { healthy:"Healthy & Happy", thirsty:"Thirsty — Needs Water", low_light:"Low Light Detected", stressed:"Plant is Stressed", peeking:"Someone's Here!" };
+  const moodLabels = { healthy:"Healthy & Happy", thirsty:"Thirsty — Needs Water", low_light:"Dim Room Lighting", stressed:"Plant is Stressed", peeking:"Someone's Here!" };
 
   // ── History chart setup ────────────────────────────────────────
   const MAX_HISTORY = 20;
@@ -678,15 +678,21 @@
   }
 
   // ── Voice ──────────────────────────────────────────────────────
-  let voiceEnabled = true, preferredVoice = null;
+  let voiceEnabled = true, preferredVoice = null, voiceLocked = false;
   let lastSpokenText = "", lastSpokenTime = 0;
   let prevMotion = false, curAssist = "";
 
   function initVoices() {
-    if (!('speechSynthesis' in window)) return;
+    if (!('speechSynthesis' in window) || voiceLocked) return;
     const v = window.speechSynthesis.getVoices();
     if (!v?.length) return;
-    preferredVoice = v.find(x => x.lang.startsWith('en') && (x.name.includes('Google')||x.name.includes('Samantha')||x.name.includes('Jenny')||x.name.includes('Aria'))) || v.find(x=>x.lang.startsWith('en')) || v[0];
+    // Prefer a female English voice; pick once and lock so it never switches mid-session.
+    preferredVoice =
+      v.find(x => x.lang.startsWith('en') && /samantha|zira|google us english|aria|jenny/i.test(x.name)) ||
+      v.find(x => x.lang === 'en-US') ||
+      v.find(x => x.lang.startsWith('en')) ||
+      v[0];
+    voiceLocked = true; // never change the voice again after first selection
   }
   if ('speechSynthesis' in window) { window.speechSynthesis.onvoiceschanged = initVoices; initVoices(); }
 
@@ -776,7 +782,14 @@
     $("assistantMessage").textContent=curAssist;
     $("deviceId").textContent=r.device_id;
     $("soilValue").textContent=Number(r.soil_moisture_pct).toFixed(1);
-    $("lightValue").textContent=Number(r.light_pct).toFixed(1);
+    const lp=Number(r.light_pct);
+    $("lightValue").textContent=lp.toFixed(1);
+    if ($("lightNote")) {
+      if (lp < 20) $("lightNote").textContent = "Dark room (< 20%)";
+      else if (lp < 35) $("lightNote").textContent = "Dim room lighting (15–35%)";
+      else if (lp < 70) $("lightNote").textContent = "Good room lighting (35–70%)";
+      else $("lightNote").textContent = "Bright room (> 70%)";
+    }
     $("temperatureValue").textContent=Number(r.temperature_c).toFixed(1);
     $("vpdValue").textContent=Number(r.vpd_kpa).toFixed(2);
     $("vpdNote").textContent=vpdLabels[r.vpd_status]||"Unknown";
@@ -791,8 +804,10 @@
     motion?$("motionBadge").classList.add("visible"):$("motionBadge").classList.remove("visible");
 
     const since=Date.now()-lastSpokenTime;
-    if(isNew||(motion&&since>15000)) speakAloe(curAssist);
-    else if(curAssist!==lastSpokenText&&since>25000) speakAloe(curAssist);
+    const alreadySpeaking = window.speechSynthesis?.speaking;
+    // Speak on new motion event (interrupt is ok), or when message changed and enough silence passed
+    if(isNew && !alreadySpeaking) speakAloe(curAssist);
+    else if(!alreadySpeaking && curAssist!==lastSpokenText && since>30000) speakAloe(curAssist);
   }
 
   async function poll(){

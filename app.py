@@ -37,8 +37,8 @@ LIGHT_LOW_THRESHOLD_PCT = 35
 TEMP_COLD_C = 13
 TEMP_HOT_C = 27
 
-# Connection freshness: firmware transmits every 60s. After 90s without data, mark disconnected.
-ESP32_TIMEOUT_SECONDS = 90
+# Connection freshness: firmware transmits every 5s. After 10s without data, mark disconnected.
+ESP32_TIMEOUT_SECONDS = 10
 
 latest_reading = None
 latest_reading_time = None
@@ -100,7 +100,16 @@ def predict_health_label(soil_pct, light_pct, temp_c, humidity_pct):
     vpd_kpa = calculate_vpd(temp_c, humidity_pct)
     if model is not None:
         try:
-            features = [[float(soil_pct), float(temp_c), float(humidity_pct), light_lux, float(vpd_kpa), 72, 0]]
+            import pandas as pd
+            features = pd.DataFrame([{
+                "soil_moisture": float(soil_pct),
+                "temperature": float(temp_c),
+                "humidity": float(humidity_pct),
+                "light_lux": float(light_lux),
+                "vpd": float(vpd_kpa),
+                "last_watered_hours": 72.0,
+                "watering_event": 0,
+            }])
             prediction = model.predict(features)[0]
             probabilities = model.predict_proba(features)[0]
             score = round(float(max(probabilities)) * 100, 1)
@@ -165,7 +174,7 @@ def build_mood(soil_pct, light_pct, temp_c, vpd_status, motion_detected):
     if temp_c > TEMP_HOT_C or temp_c < TEMP_COLD_C:
         return "stressed", "I'm stressed by the temperature. A gentler spot would help."
     if light_pct < LIGHT_LOW_THRESHOLD_PCT:
-        return "low_light", "I could use a little more sunlight."
+        return "low_light", "The room is a bit too dim for me. More room light would help."
     if vpd_status == "too_humid":
         return "stressed", "The air is very humid. Please keep me somewhere airy."
     if vpd_status == "high_stress":
@@ -261,7 +270,7 @@ def generate_assistant_message(reading):
         if temp < TEMP_COLD_C:
             return "Hey! Glad you're here! Brrr, it's getting too cold, please move me to a warmer place."
         if light < LIGHT_LOW_THRESHOLD_PCT:
-            return "Hey! Nice to see you! I could really use a little more sunlight today."
+            return "Hey! Nice to see you! The room light is a bit dim right now."
         return "Hey! Nice to see you there! I am feeling healthy and happy today."
 
     # 2. Contextual care alerts based on live sensor conditions:
@@ -272,9 +281,9 @@ def generate_assistant_message(reading):
     if temp < TEMP_COLD_C:
         return "Hey! Brrr, it's too cold! Please move me to a warmer place."
     if light < LIGHT_LOW_THRESHOLD_PCT and humidity > 60:
-        return "Hey! I need more sunlight and the air is too humid. Please move me near a bright window and improve the airflow."
+        return "Hey! The room light is low and the air is too humid. Please improve airflow and room lighting."
     if light < LIGHT_LOW_THRESHOLD_PCT:
-        return "Hey! I need more sunlight. Please move me near a bright window or brighter spot."
+        return "Hey! The room is a bit dark. Please turn on a light or move me to a brighter spot in the room."
     if humidity > 60 or vpd_status in {"too_humid", "high_stress"}:
         return "Hey! The air feels too humid for me. Please improve airflow and keep me in a drier, more comfortable spot."
     if primary in {"healthy", "happy"}:
@@ -361,38 +370,60 @@ def process_sensor_reading(data: dict) -> dict:
 
 
 def serial_reader_loop():
-    """Background thread that checks USB serial ports if ENABLE_SERIAL_SCAN=1."""
+    """Background thread that reads USB serial port if available as auto-fallback."""
     import os
-    if not SERIAL_AVAILABLE or os.environ.get("ENABLE_SERIAL_SCAN") != "1":
+    if not SERIAL_AVAILABLE or os.environ.get("ENABLE_SERIAL_SCAN") == "0":
         return
 
     while True:
-        try:
-            target_port = os.environ.get("ESP32_PORT")
-            ports = [target_port] if target_port else [f"COM{i}" for i in range(3, 8)]
-            for port_name in ports:
-                try:
-                    with serial.Serial(port_name, 115200, timeout=0.5) as ser:
-                        ser.reset_input_buffer()
-                        time.sleep(0.2)
-                        lines_checked = 0
-                        while lines_checked < 3:
-                            lines_checked += 1
-                            raw = ser.readline().decode("utf-8", errors="ignore").strip()
-                            if not raw:
-                                continue
-                            if raw.startswith("{") and raw.endswith("}"):
-                                try:
-                                    payload = json.loads(raw)
-                                    if "device_id" in payload and "soil_moisture_pct" in payload:
-                                        process_sensor_reading(payload)
-                                except Exception:
-                                    pass
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        time.sleep(10)
+        target_port = os.environ.get("ESP32_PORT")
+        candidate_ports = []
+        if target_port:
+            candidate_ports.append(target_port)
+        else:
+            try:
+                for port in serial.tools.list_ports.comports():
+                    desc = f"{port.description or ''} {port.hwid or ''}".lower()
+                    if any(k in desc for k in ["cp210", "ch340", "ch341", "ftdi", "uart", "serial", "esp32"]):
+                        candidate_ports.append(port.device)
+                if not candidate_ports:
+                    candidate_ports = [p.device for p in serial.tools.list_ports.comports()]
+            except Exception:
+                pass
+
+        connected_ser = None
+        for port_name in candidate_ports:
+            try:
+                connected_ser = serial.Serial(port_name, 115200, timeout=1)
+                logger.info("Connected to serial port %s", port_name)
+                break
+            except Exception:
+                continue
+
+        if connected_ser:
+            try:
+                with connected_ser as ser:
+                    ser.reset_input_buffer()
+                    consecutive_empty = 0
+                    while True:
+                        line = ser.readline().decode("utf-8", errors="ignore").strip()
+                        if not line:
+                            consecutive_empty += 1
+                            if consecutive_empty > 30:
+                                break
+                            continue
+                        consecutive_empty = 0
+                        if line.startswith("{") and line.endswith("}"):
+                            try:
+                                payload = json.loads(line)
+                                if "device_id" in payload and "soil_moisture_pct" in payload:
+                                    process_sensor_reading(payload)
+                            except Exception:
+                                pass
+            except Exception as e:
+                logger.debug("Serial connection closed: %s", e)
+
+        time.sleep(3)
 
 
 def start_serial_listener():
@@ -565,7 +596,7 @@ def generate_ai_chat_response(user_query: str) -> dict:
         elif temp < TEMP_COLD_C:
             care_alert = f"Also, brrr, it is {temp:.1f}°C, which is too cold for me! Please move me to a warmer place."
         elif light < LIGHT_LOW_THRESHOLD_PCT:
-            care_alert = f"Also, I could really use more sunlight today. My light level is only {light:.1f}%."
+            care_alert = f"Also, the room is a bit dim today. Room light is only {light:.1f}%."
 
     # Weather intent
     if any(k in query for k in ["weather", "forecast", "outside", "rain", "sunny", "climate"]):
@@ -619,16 +650,20 @@ def generate_ai_chat_response(user_query: str) -> dict:
                 reply = f"The temperature feels great! It is currently {temp:.1f}°C, right in my comfort zone between 18 and 27°C."
         return {"status": "ok", "reply": reply, "intent": "temperature", "care_alert": care_alert}
 
-    # Sunlight intent
-    if any(k in query for k in ["sun", "sunlight", "light", "brightness"]):
+    # Room light intent
+    if any(k in query for k in ["room light", "light", "brightness", "dim", "dark", "illumination", "lamps"]):
         if not connected or not reading:
-            reply = "My light sensor is offline right now. Connect the ESP32 and I'll tell you if I'm getting enough sun!"
+            reply = "My light sensor is offline right now. Connect the ESP32 and I'll tell you how well-lit the room is!"
         else:
             light = float(reading.get("light_pct", 0))
-            if light < LIGHT_LOW_THRESHOLD_PCT:
-                reply = f"I need more sunlight! My light sensor is only reading {light:.1f}%. Please move me near a bright, sunny window."
+            if light < 20:
+                reply = f"The room is quite dark right now at {light:.1f}% light. Turning on a lamp or light would help!"
+            elif light < LIGHT_LOW_THRESHOLD_PCT:
+                reply = f"The room is dimly lit at {light:.1f}%. A brighter room spot would keep my leaves happiest."
+            elif light < 75:
+                reply = f"The room lighting is comfortable at {light:.1f}%. Good indoor ambient light for an aloe plant!"
             else:
-                reply = f"I am soaking in plenty of light at {light:.1f}%! This bright indirect light helps keep my aloe leaves thick and green."
+                reply = f"The room is brightly illuminated at {light:.1f}%. Plenty of light here!"
         return {"status": "ok", "reply": reply, "intent": "light", "care_alert": care_alert}
 
     # Health / Mood intent
@@ -640,7 +675,7 @@ def generate_ai_chat_response(user_query: str) -> dict:
             temp = reading.get("temperature_c", 0)
             light = reading.get("light_pct", 0)
             status = reading.get("primary_status", "healthy")
-            reply = f"I'm feeling {status}! My soil moisture is {soil:.1f}%, sunlight is {light:.1f}%, and temperature is {temp:.1f}°C."
+            reply = f"I'm feeling {status}! My soil moisture is {soil:.1f}%, room light is {light:.1f}%, and temperature is {temp:.1f}°C."
             if care_alert:
                 reply += f" {care_alert}"
         return {"status": "ok", "reply": reply, "intent": "health", "care_alert": care_alert}

@@ -16,25 +16,18 @@ def predict_health(soil_moisture: float, temperature: float, humidity: float, li
         model = pickle.load(fh)
 
     vpd = vpd_from_temp_rh(temperature, humidity)
-    features = {
+    import pandas as pd
+    features_df = pd.DataFrame([{
         "soil_moisture": float(soil_moisture),
         "temperature": float(temperature),
         "humidity": float(humidity),
         "light_lux": float(light_lux),
         "vpd": float(vpd),
-        "last_watered_hours": 72,
+        "last_watered_hours": 72.0,
         "watering_event": 0,
-    }
+    }])
 
-    prediction = model.predict([[
-        features["soil_moisture"],
-        features["temperature"],
-        features["humidity"],
-        features["light_lux"],
-        features["vpd"],
-        features["last_watered_hours"],
-        features["watering_event"],
-    ]])[0]
+    prediction = model.predict(features_df)[0]
 
     return {
         "plant": "Aloe Vera",

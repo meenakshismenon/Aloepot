@@ -39,7 +39,7 @@ class AssistantLogicTests(unittest.TestCase):
             "motion_detected": False,
         }
         message = generate_assistant_message(reading)
-        self.assertIn("sunlight", message.lower())
+        self.assertIn("light", message.lower())
         self.assertIn("humid", message.lower())
 
     def test_hot_temperature_move_to_cooler_place(self):

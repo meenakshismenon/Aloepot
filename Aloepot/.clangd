@@ -1,0 +1,11 @@
+CompileFlags:
+  Add:
+    - -x
+    - c++
+    - -std=gnu++17
+    - -DARDUINO=10800
+    - -DESP32
+
+Diagnostics:
+  Suppress:
+    - "*"
