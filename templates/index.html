@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#06040f">
-  <meta name="description" content="Smart Aloe Vera real-time plant monitor with AI assistant">
-  <title>Aloe Pot | Live Plant Dashboard</title>
+  <meta name="description" content="AloePulse real-time smart plant monitor with AI assistant">
+  <title>AloePulse | Live Plant Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -335,6 +335,176 @@
       .last-update { flex-direction:column; gap:5px; }
       .topbar { flex-direction:column; align-items:flex-start; }
     }
+
+    /* ── RAIN ALERT BANNER ───────────────────────────────────────── */
+    .rain-banner {
+      display: flex; align-items: center; gap: 14px;
+      margin-top: 18px; padding: 14px 22px; border-radius: 18px;
+      border: 1px solid rgba(34, 211, 238, 0.4);
+      background: linear-gradient(135deg, rgba(8, 47, 73, 0.88), rgba(12, 74, 110, 0.75));
+      backdrop-filter: blur(20px);
+      box-shadow: 0 8px 30px rgba(34, 211, 238, 0.25);
+      animation: rainPulse 3s ease-in-out infinite alternate;
+      transition: all .3s ease;
+    }
+    .rain-banner.hidden { display: none !important; }
+    @keyframes rainPulse {
+      0% { box-shadow: 0 0 15px rgba(34,211,238,.2); }
+      100% { box-shadow: 0 0 35px rgba(34,211,238,.45); }
+    }
+    .rain-icon { font-size: 26px; animation: bounceRain 1.6s infinite; }
+    @keyframes bounceRain { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+    .rain-info strong { display: block; font-family: 'Syne', sans-serif; font-size: 14px; color: #a5f3fc; margin-bottom: 2px; }
+    .rain-info span { font-size: 13px; color: #bae6fd; }
+
+    /* ── VISITOR TRACKING PANEL ──────────────────────────────────── */
+    .visitor-panel {
+      margin-top: 24px; padding: 26px; border-radius: 24px;
+      border: 1px solid var(--border2);
+      background: var(--panel);
+      backdrop-filter: blur(28px);
+      box-shadow: var(--shadow);
+    }
+    .visitor-top {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 16px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .visitor-title-box { display: flex; align-items: center; gap: 10px; }
+    .visitor-title-box h3 {
+      font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700;
+      color: #e9d5ff; letter-spacing: -.02em;
+    }
+    .visitor-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 99px; font-size: 12px; font-weight: 700;
+      font-family: 'Syne', sans-serif; letter-spacing: .02em;
+    }
+    .visitor-badge.meenakshi {
+      background: rgba(52, 211, 153, 0.2); color: #34d399;
+      border: 1px solid rgba(52, 211, 153, 0.5);
+      box-shadow: 0 0 15px rgba(52, 211, 153, 0.3);
+    }
+    .visitor-badge.visitor {
+      background: rgba(251, 191, 36, 0.2); color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.5);
+    }
+    .visitor-badge.idle {
+      background: rgba(139, 92, 246, 0.15); color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .visitor-greeting {
+      padding: 14px 18px; border-radius: 14px; margin-bottom: 16px;
+      background: rgba(30, 16, 64, 0.6); border: 1px solid rgba(167, 139, 250, 0.2);
+      color: #e9d5ff; font-size: 14px; line-height: 1.5;
+    }
+    .visitor-greeting strong { color: #f472b6; }
+    .visitor-table-wrap { overflow-x: auto; }
+    .visitor-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .visitor-table th { text-align: left; padding: 10px 12px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; border-bottom: 1px solid var(--border); }
+    .visitor-table td { padding: 10px 12px; border-bottom: 1px solid rgba(139, 92, 246, 0.1); color: var(--text); }
+    .visitor-table tr:hover td { background: rgba(139, 92, 246, 0.08); }
+    .tag-meenakshi { color: #34d399; font-weight: 700; }
+    .tag-visitor { color: #fbbf24; font-weight: 600; }
+
+    /* ── PLANT SELFIE GALLERY ───────────────────────────────── */
+    .selfie-panel {
+      padding: 28px 30px; border-radius: 22px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      backdrop-filter: blur(28px);
+      margin-top: 28px;
+    }
+    .selfie-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+    }
+    .selfie-header h3 {
+      font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+      background: linear-gradient(135deg, #c084fc, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .selfie-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 14px; border: none;
+      background: linear-gradient(135deg, #7c3aed, #a855f7);
+      color: white; font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all .3s ease; box-shadow: 0 4px 20px rgba(124, 58, 237, 0.35);
+    }
+    .selfie-btn:hover {
+      transform: translateY(-2px); box-shadow: 0 6px 28px rgba(124, 58, 237, 0.5);
+    }
+    .selfie-btn:active { transform: scale(0.96); }
+    .selfie-btn svg { width: 16px; height: 16px; }
+    .selfie-btn.capturing {
+      background: linear-gradient(135deg, #f472b6, #ec4899);
+      animation: pulse-btn 1s ease infinite;
+    }
+    @keyframes pulse-btn {
+      0%, 100% { box-shadow: 0 4px 20px rgba(244, 114, 182, 0.35); }
+      50% { box-shadow: 0 6px 32px rgba(244, 114, 182, 0.6); }
+    }
+    .selfie-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .selfie-card {
+      border-radius: 16px; overflow: hidden; position: relative;
+      border: 1px solid var(--border);
+      background: rgba(15, 8, 35, 0.6);
+      transition: all .4s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+    .selfie-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 12px 40px rgba(139, 92, 246, 0.25);
+      border-color: var(--violet);
+    }
+    .selfie-card img {
+      width: 100%; aspect-ratio: 4/3; object-fit: cover;
+      display: block; transition: transform .5s ease;
+    }
+    .selfie-card:hover img { transform: scale(1.06); }
+    .selfie-card .selfie-meta {
+      padding: 10px 14px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .selfie-card .selfie-date {
+      font-size: 11px; color: var(--muted);
+    }
+    .selfie-card .selfie-label {
+      font-size: 10px; padding: 2px 10px; border-radius: 99px;
+      font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+    }
+    .selfie-label.morning { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+    .selfie-label.manual  { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+    .selfie-empty {
+      text-align: center; padding: 40px; color: var(--muted); font-size: 14px;
+    }
+    .selfie-empty svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.4; }
+
+    /* Selfie lightbox overlay */
+    .selfie-lightbox {
+      display: none; position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+      place-items: center; cursor: pointer;
+    }
+    .selfie-lightbox.active { display: grid; }
+    .selfie-lightbox img {
+      max-width: 90vw; max-height: 85vh; border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      animation: selfie-zoom-in .3s ease;
+    }
+    @keyframes selfie-zoom-in { from { transform: scale(0.85); opacity:0; } to { transform: scale(1); opacity:1; } }
+    .selfie-lightbox .lb-close {
+      position: absolute; top: 20px; right: 28px;
+      font-size: 32px; color: white; cursor: pointer;
+      opacity: 0.7; transition: opacity .2s;
+    }
+    .selfie-lightbox .lb-close:hover { opacity: 1; }
+    .selfie-lightbox .lb-date {
+      position: absolute; bottom: 24px;
+      font-size: 14px; color: rgba(255,255,255,0.7);
+    }
   </style>
 </head>
 <body>
@@ -358,7 +528,7 @@
         </div>
         <div>
           <p class="eyebrow">Smart plant system</p>
-          <h1>Aloe Vera Monitor</h1>
+          <h1>AloePulse</h1>
         </div>
       </div>
       <div class="connection" role="status" aria-live="polite">
@@ -367,8 +537,18 @@
       </div>
     </header>
 
+    <!-- ── OUTDOOR RAIN ALERT BANNER ────────────────────────────── -->
+    <div id="rainBanner" class="rain-banner hidden" role="alert">
+      <div class="rain-icon">🌧️</div>
+      <div class="rain-info">
+        <strong id="rainBannerTitle">Outdoor Rain Alert</strong>
+        <span id="rainBannerDesc">It is currently raining outside in Bengaluru! Make sure outdoor plants are sheltered and avoid overwatering today.</span>
+      </div>
+    </div>
+
     <!-- ── HERO ────────────────────────────────────────────────── -->
     <section class="hero" aria-labelledby="moodTitle">
+
       <div class="plant-stage">
         <div class="plant-halo" aria-hidden="true"></div>
         <div id="avatar" class="avatar-wrap" aria-label="Plant status">
@@ -486,7 +666,79 @@
       </article>
     </section>
 
+    <!-- ── ROOM OCCUPANCY & VISITOR TRACKER ────────────────────── -->
+    <section class="visitor-panel" aria-label="Room Occupancy & Visitor Tracker">
+      <div class="visitor-top">
+        <div class="visitor-title-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#a78bfa" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="#a78bfa" stroke-width="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="#f472b6" stroke-width="2" stroke-linecap="round"/></svg>
+          <h3>Room Occupancy & Visitor Log</h3>
+        </div>
+        <div id="occupantBadge" class="visitor-badge idle">
+          <span class="dot offline"></span>
+          <span id="occupantStatusText">No Person Detected</span>
+        </div>
+      </div>
+
+      <div id="visitorGreeting" class="visitor-greeting">
+        <strong>Plant pot observer: </strong><span id="visitorGreetingText">Camera face tracker running. Standing by for visitors or Meenakshi...</span>
+      </div>
+
+      <div class="visitor-table-wrap">
+        <table class="visitor-table" aria-label="Recent visitor arrivals">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Person</th>
+              <th>Snapshot</th>
+              <th>Status</th>
+              <th>Greeting Spoken</th>
+            </tr>
+          </thead>
+          <tbody id="visitorTableBody">
+            <tr>
+              <td colspan="5" style="color:var(--muted); text-align:center; padding:18px;">
+                No visitor arrivals logged yet. Run <code>python face_tracker.py</code> to activate the camera tracker!
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── PLANT SELFIE GALLERY ──────────────────────────────── -->
+    <section class="selfie-panel" aria-label="Plant Selfie Gallery">
+      <div class="selfie-header">
+        <h3>Daily Plant Selfies</h3>
+        <button id="btnTakeSelfie" class="selfie-btn" title="Capture a plant selfie right now">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          Take Selfie Now
+        </button>
+      </div>
+      <div id="selfieGallery" class="selfie-grid">
+        <div class="selfie-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="3"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+          <div>No plant selfies yet!</div>
+          <div style="font-size:12px; margin-top:6px;">Click "Take Selfie Now" or wait for the daily 9 AM auto-capture.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Selfie Lightbox -->
+    <div id="selfieLightbox" class="selfie-lightbox" onclick="this.classList.remove('active')">
+      <span class="lb-close">&times;</span>
+      <img id="lightboxImg" src="" alt="Plant selfie full view">
+      <div id="lightboxDate" class="lb-date"></div>
+    </div>
+
     <!-- ── HISTORY CHART ────────────────────────────────────────── -->
+
     <div class="chart-panel">
       <div class="chart-header">
         <span class="chart-title">Sensor History — Last 20 Readings</span>
@@ -799,15 +1051,115 @@
     setConn("connected",`ESP32 Connected · Live (${r.device_id})`);
     pushHistory(r);
 
+    // ── Rain Alert Display ──────────────────────────────────────
+    if (r.is_raining) {
+      $("rainBanner")?.classList.remove("hidden");
+      if (r.rain_alert && $("rainBannerDesc")) {
+        $("rainBannerDesc").textContent = r.rain_alert;
+      }
+    } else {
+      $("rainBanner")?.classList.add("hidden");
+    }
+
     const motion=Boolean(r.motion_detected), isNew=motion&&!prevMotion;
     prevMotion=motion;
     motion?$("motionBadge").classList.add("visible"):$("motionBadge").classList.remove("visible");
 
-    const since=Date.now()-lastSpokenTime;
-    const alreadySpeaking = window.speechSynthesis?.speaking;
-    // Speak on new motion event (interrupt is ok), or when message changed and enough silence passed
-    if(isNew && !alreadySpeaking) speakAloe(curAssist);
-    else if(!alreadySpeaking && curAssist!==lastSpokenText && since>30000) speakAloe(curAssist);
+    // Only speak urgent plant emergencies (critically dry or high heat), throttled to once every 10 minutes
+    const nowMs = Date.now();
+    const isCritical = (Number(r.soil_moisture_pct) <= 10 || Number(r.temperature_c) >= 32);
+    if (isCritical && (nowMs - lastEmergencySpokenTime >= TEN_MINUTES_MS)) {
+      if (!window.speechSynthesis?.speaking) {
+        lastEmergencySpokenTime = nowMs;
+        speakAloe(curAssist);
+      }
+    }
+  }
+
+  // ── Smart Greeting Cooldown & Visitor Arrival Controls ──────────
+  const TEN_MINUTES_MS = 10 * 60 * 1000; // 10 minutes cooldown (600,000 ms)
+  let lastOwnerGreetingTime = 0;          // When Meenakshi was last greeted
+  let lastStrangerGreetingTime = 0;       // When a stranger was last greeted
+  let hasStrangerGreetedOnce = false;     // Stranger greeting speaks ONLY 1 time
+  let lastEmergencySpokenTime = 0;        // When critical care alert was spoken
+  let _lastVisitorKey = null;             // Currently active occupant key
+
+  function speakGreeting(text) {
+    if (!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      if (preferredVoice) utter.voice = preferredVoice;
+      utter.rate = 1.0;
+      utter.pitch = 1.15;
+      window.speechSynthesis.speak(utter);
+    } catch (e) {}
+  }
+
+  // ── Live Visitor & Occupancy Updates ──────────────────────────
+  async function fetchVisitors() {
+    try {
+      const res = await fetch("/api/visitors", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const cur = data.current_visitor;
+      const badge = $("occupantBadge");
+      const statusText = $("occupantStatusText");
+      const greetText = $("visitorGreetingText");
+      const now = Date.now();
+
+      if (cur && cur.name && cur.last_seen_seconds_ago !== null && cur.last_seen_seconds_ago < 12) {
+        const isStranger = !cur.is_meenakshi;
+        const visitorKey = cur.is_meenakshi ? "meenakshi" : cur.name;
+
+        if (cur.is_meenakshi) {
+          if (badge) badge.className = "visitor-badge meenakshi";
+          if (statusText) statusText.textContent = "Meenakshi in Room";
+
+          // ONLY greet Meenakshi if 10 full minutes have passed since the last greeting
+          if (now - lastOwnerGreetingTime >= TEN_MINUTES_MS) {
+            lastOwnerGreetingTime = now;
+            speakGreeting("Welcome back, Meenakshi! Great to see you!");
+          }
+        } else {
+          // Stranger / Unknown guest detected (visual badge update only - no browser voice spam)
+          if (badge) badge.className = "visitor-badge visitor";
+          const strangerLabel = cur.name.toLowerCase().includes("stranger") ? cur.name : `Stranger (${cur.name})`;
+          if (statusText) statusText.textContent = `${strangerLabel} in Room`;
+        }
+
+        _lastVisitorKey = visitorKey;
+        if (greetText) greetText.innerHTML = `<strong>${cur.name}:</strong> "${cur.greeting}"`;
+      } else {
+        if (badge) badge.className = "visitor-badge idle";
+        if (statusText) statusText.textContent = "Room Quiet";
+        if (greetText) greetText.textContent = "No motion or visitors detected recently. Standing by with camera tracker.";
+        _lastVisitorKey = null;
+      }
+
+      const tbody = $("visitorTableBody");
+      if (tbody && data.visitors && data.visitors.length > 0) {
+        tbody.innerHTML = data.visitors.slice(0, 10).map(v => {
+          const timeStr = new Date(v.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const tagClass = v.is_meenakshi ? "tag-meenakshi" : "tag-visitor";
+          const role = v.is_meenakshi ? "Owner" : "Visitor";
+          const photoHtml = v.photo_url
+            ? `<a href="${v.photo_url}" target="_blank" title="Click to view full photo">
+                 <img src="${v.photo_url}" style="width:42px; height:42px; border-radius:8px; object-fit:cover; border:2px solid rgba(245,158,11,0.6); box-shadow:0 2px 8px rgba(0,0,0,0.4); vertical-align:middle; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'" alt="Stranger Photo">
+               </a>`
+            : `<span style="color:var(--muted); font-size:11px;">—</span>`;
+          return `<tr>
+            <td style="color:var(--muted);">${timeStr}</td>
+            <td class="${tagClass}">${v.name}</td>
+            <td>${photoHtml}</td>
+            <td><span style="font-size:11px; padding:2px 8px; border-radius:99px; background:rgba(139,92,246,0.15);">${role}</span></td>
+            <td style="color:#d8b4fe;">"${v.greeting}"</td>
+          </tr>`;
+        }).join("");
+      }
+    } catch (e) {
+      console.warn("Visitor fetch error:", e);
+    }
   }
 
   async function poll(){
@@ -818,11 +1170,89 @@
       if(data.status==="disconnected"||data.status==="no_data_yet"||!data.sensor_connected){ renderDisconnected(data.message); return; }
       render(data);
     } catch(e){ setConn("offline","Backend unreachable"); renderDisconnected("Backend server unreachable"); }
+    finally {
+      fetchVisitors();
+    }
   }
+
+  // ── Plant Selfie Gallery ──────────────────────────────────────────
+  async function fetchSelfies() {
+    try {
+      const res = await fetch("/api/selfies", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const grid = $("selfieGallery");
+      if (!grid) return;
+
+      if (!data.selfies || data.selfies.length === 0) {
+        grid.innerHTML = `<div class="selfie-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="3"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+          <div>No plant selfies yet!</div>
+          <div style="font-size:12px; margin-top:6px;">Click "Take Selfie Now" or wait for the daily 9 AM auto-capture.</div>
+        </div>`;
+        return;
+      }
+
+      grid.innerHTML = data.selfies.slice(0, 12).map(s => {
+        const date = new Date(s.timestamp);
+        const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const label = s.filename.includes('morning') ? 'morning' : 'manual';
+        const labelText = label === 'morning' ? 'Daily' : 'Manual';
+        return `<div class="selfie-card" onclick="openSelfie('${s.url}','${dateStr} ${timeStr}')">
+          <img src="${s.url}" alt="Plant selfie ${dateStr}" loading="lazy">
+          <div class="selfie-meta">
+            <span class="selfie-date">${dateStr} ${timeStr}</span>
+            <span class="selfie-label ${label}">${labelText}</span>
+          </div>
+        </div>`;
+      }).join("");
+    } catch (e) {
+      console.warn("Selfie gallery fetch error:", e);
+    }
+  }
+
+  function openSelfie(url, dateText) {
+    const lb = $("selfieLightbox");
+    const img = $("lightboxImg");
+    const dt = $("lightboxDate");
+    if (lb && img) {
+      img.src = url;
+      if (dt) dt.textContent = dateText;
+      lb.classList.add("active");
+    }
+  }
+
+  // Manual selfie button
+  $("btnTakeSelfie").addEventListener("click", async () => {
+    const btn = $("btnTakeSelfie");
+    btn.classList.add("capturing");
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Capturing...`;
+    try {
+      await fetch("/api/selfie/take", { method: "POST" });
+      // Wait for the camera to capture and upload
+      setTimeout(async () => {
+        btn.classList.remove("capturing");
+        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Take Selfie Now`;
+        await fetchSelfies();
+      }, 4000);
+    } catch (e) {
+      btn.classList.remove("capturing");
+      btn.textContent = "Error - try again";
+    }
+  });
 
   setAvatar("default");
   poll();
+  fetchVisitors();
+  fetchSelfies();
   setInterval(poll, POLL_MS);
+  setInterval(fetchSelfies, 60000);
+
   </script>
 </body>
 </html>
